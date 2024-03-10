@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+  go:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_NAME: '${DB_NAME}'
+      DB_USER: '${DB_USER}'
+      DB_PASSWORD: '${DB_PASSWORD}'
+      DB_HOST: '${DB_HOST}'
+      DB_PORT: '${DB_PORT}'
+    networks:
+      - go-net
+    depends_on:
+      - pgsql
+
+  pgsql:
+    image: "postgres:15"
+    ports:
+        - '5432:5432'
+    environment:
+        PGPASSWORD: '${DB_PASSWORD:-secret}'
+        POSTGRES_DB: '${DB_NAME}'
+        POSTGRES_USER: '${DB_USER}'
+        POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+    volumes:
+        - 'db-data:/var/lib/postgresql/data'
+    networks:
+        - go-net
+    healthcheck:
+        test:
+            - CMD
+            - pg_isready
+            - '-q'
+            - '-d'
+            - '${DB_NAME}'
+            - '-U'
+            - '${DB_USER}'
+        retries: 3
+        timeout: 5s
+
+networks:
+  go-net:
+    driver: bridge
+
+volumes:
+  db-data:
